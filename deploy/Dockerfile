@@ -32,9 +32,13 @@ COPY profiles ./profiles
 # а не в компоненте.
 RUN go test ./...
 
-RUN go build -trimpath -ldflags="-s -w" -o /out/captcha ./cmd/inspector && \
-    go build -trimpath -ldflags="-s -w" -o /out/captcha-http ./cmd/http && \
-    go build -trimpath -ldflags="-s -w" -o /out/captcha-probe ./cmd/probe
+# Сборка в бинарь: версия и ревизия видны в журнале старта и в кадре
+# присутствия, а не только в метках образа.
+ARG VERSION=dev
+ARG REVISION=unknown
+RUN go build -trimpath -ldflags="-s -w -X main.version=${VERSION} -X main.revision=${REVISION}" -o /out/captcha ./cmd/inspector && \
+    go build -trimpath -ldflags="-s -w -X main.version=${VERSION} -X main.revision=${REVISION}" -o /out/captcha-http ./cmd/http && \
+    go build -trimpath -ldflags="-s -w -X main.version=${VERSION} -X main.revision=${REVISION}" -o /out/captcha-probe ./cmd/probe
 
 FROM alpine:3.22
 

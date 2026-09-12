@@ -69,6 +69,8 @@ func run() error {
 
 	log := slog.New(slog.NewJSONHandler(logs.Tee(os.Stdout),
 		&slog.HandlerOptions{Level: level}))
+
+	log.Info("build", "version", version, "revision", revision)
 	slog.SetDefault(log)
 
 	profiles, err := config.LoadProfiles(cfg.ProfilesDir, log)
