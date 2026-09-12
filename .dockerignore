@@ -1,0 +1,12 @@
+# Контекст сборки. Тесты (*_test.go) НЕ исключены: сборка их запускает.
+# web/ и profiles/ едут в образ целиком -- их не трогать.
+
+/README.md
+/INSTALL.md
+/LICENSE.md
+/LICENSE.ru.md
+/docs/
+/.github/
+/.gitignore
+/.gitattributes
+/inspector

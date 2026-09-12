@@ -1,0 +1,65 @@
+# Виджет телом ответа на том же URI, без редиректа.
+#
+# Отличие от login ровно в одной строке -- gate.inline. Редирект от этого не
+# умирает: он остаётся у остальных профилей, и оба пути проверяются рядом.
+#
+# Зачем так: редирект уводит браузер на path абсолютным адресом, который nginx
+# достраивает портом своего listen, и за терминатором TLS или нестандартным
+# портом клиент уезжает не туда. Виджет на месте адреса не меняет.
+#
+# Как устроено: инспектор выписывает билет, берёт страницу у captcha-http
+# внутренним запросом (WAF_CAPTCHA_HTTP_URL), кладёт её в обменник под ключ
+# запроса и отвечает deny с секцией rewrite; модуль отдаёт объект телом ответа
+# с кодом записи deny_response. Ни записи каталога, ни прокси-локации для
+# этого не нужно. Страница не досталась -- редирект, как у login.
+
+mode: enforce
+path: /waf/captcha
+title: "Подтвердите, что вы не робот"
+note: "Короткая проверка -- и вернём вас на страницу."
+
+trigger:
+  when: always
+
+gate:
+  # Страница отдаётся телом этого же ответа. Код остаётся отказным (403 у
+  # captcha_required): двухсотый превратил бы гейт в тихий пропуск -- его
+  # закэшируют CDN и проиндексируют поисковики.
+  inline: true
+
+  # Не-навигация (fetch, POST) и запасной код для inline: машиночитаемый отказ
+  # с адресом задания -- виджет показывает фронтенд сам.
+  deny_response: captcha_required
+
+  redirect_methods: [GET, HEAD]
+  redirect_status: 303
+  html_only: true
+
+provider:
+  kind: image
+  length: 5
+  audio: true
+
+challenge:
+  cookie: waf_cap
+  ttl: 5m
+
+clearance:
+  cookie: waf_clr
+  id_cookie: waf_cid
+  ttl: 1h
+  bind: [subnet, ua]
+
+limits:
+  issue_per_subnet: 30/m
+  verify_per_subnet: 60/m
+  pending_max: 200000
+  provider_budget: 50/s
+
+upstream:
+  header: X-WAF-Captcha
+
+roster:
+  store: redis
+  prefix: "cap:"
+  revoke_refresh: 2s

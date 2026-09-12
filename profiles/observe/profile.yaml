@@ -1,0 +1,39 @@
+# Наблюдение: инспектор отвечает allow всегда и пишет в аудит, что решил бы
+# в enforce (engine.would, engine.trigger). Так калибруют пороги корзин на
+# живом трафике, не заперев за виджетом людей. path не нужен: редиректа не
+# бывает.
+
+mode: observe
+
+trigger:
+  when: buckets
+
+gate:
+  deny_response: captcha_required
+
+provider:
+  kind: image
+  length: 5
+
+challenge:
+  cookie: waf_cap
+  ttl: 5m
+
+clearance:
+  cookie: waf_clr
+  id_cookie: waf_cid
+  ttl: 24h
+
+limits:
+  issue_per_subnet: 30/m
+  verify_per_subnet: 60/m
+  pending_max: 200000
+  provider_budget: 50/s
+
+upstream:
+  header: X-WAF-Captcha
+
+roster:
+  store: redis
+  prefix: "cap:"
+  revoke_refresh: 2s

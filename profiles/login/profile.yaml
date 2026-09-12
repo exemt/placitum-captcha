@@ -1,0 +1,44 @@
+# Форма входа: виджет каждому без сессии, и сессия недолгая.
+
+mode: enforce
+path: /waf/captcha
+title: "Подтвердите, что вы не робот"
+note: "Перед входом нужна короткая проверка."
+
+trigger:
+  when: always
+
+gate:
+  redirect_methods: [GET, HEAD]
+  redirect_status: 303
+  deny_response: captcha_required
+  html_only: true
+
+provider:
+  kind: image
+  length: 5
+  audio: true
+
+challenge:
+  cookie: waf_cap
+  ttl: 5m
+
+clearance:
+  cookie: waf_clr
+  id_cookie: waf_cid
+  ttl: 1h
+  bind: [subnet, ua]
+
+limits:
+  issue_per_subnet: 30/m
+  verify_per_subnet: 60/m
+  pending_max: 200000
+  provider_budget: 50/s
+
+upstream:
+  header: X-WAF-Captcha
+
+roster:
+  store: redis
+  prefix: "cap:"
+  revoke_refresh: 2s
