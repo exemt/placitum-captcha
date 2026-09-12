@@ -30,13 +30,13 @@ import (
 
 	"github.com/exemt/placitum-captcha/internal/buckets"
 	"github.com/exemt/placitum-captcha/internal/config"
-	"github.com/exemt/placitum-captcha/internal/dataset"
 	"github.com/exemt/placitum-captcha/internal/livelist"
-	"github.com/exemt/placitum-shared/netinfo"
 	"github.com/exemt/placitum-captcha/internal/provider"
 	"github.com/exemt/placitum-captcha/internal/roster"
 	"github.com/exemt/placitum-captcha/internal/stats"
 	"github.com/exemt/placitum-captcha/internal/token"
+	"github.com/exemt/placitum-shared/dataset"
+	"github.com/exemt/placitum-shared/netinfo"
 )
 
 const (

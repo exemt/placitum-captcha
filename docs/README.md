@@ -431,7 +431,7 @@ captcha-http:       zadd cap:rev <jti> <exp>             → отзыв клир
 
 Идентификаторы короткие и открытые именно ради этого: токены запечатаны и
 прочитать из них `sid`/`jti` сосед не может, а `waf_sess`/`waf_cid` — может.
-Пакет публикации один на всех (`internal/dataset` из auth, вынести в общий),
+Пакет публикации один на всех -- `dataset` из `placitum-shared`: синхронный режим у HTTP-процессов, фоновый у инспекторов.
 форма события — та, что принимает контроллер. Так «команда соседу»
 становится записью в список, которую видно в UX и которую можно отменить
 руками, а не невидимым RPC между контейнерами.
@@ -893,7 +893,6 @@ inspectors/captcha/
 ├── internal/roster/   pending / cleared / revoke / счётчики: Redis или память
 ├── internal/provider/ image, turnstile, recaptcha, hcaptcha, smartcaptcha
 ├── internal/image/    растр, искажение, аудио
-├── internal/dataset/  публикация add/remove в активный список
 ├── internal/config/   окружение, inspector.conf, профили, корзины, правила
 ├── internal/desired/  поколение из KV, раскладка на диск
 ├── internal/audit/    коды, pulse, метрики

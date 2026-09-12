@@ -20,9 +20,9 @@ import (
 	"github.com/exemt/placitum-captcha/internal/buckets"
 	"github.com/exemt/placitum-captcha/internal/config"
 	"github.com/exemt/placitum-captcha/internal/decide"
-	"github.com/exemt/placitum-shared/netinfo"
 	"github.com/exemt/placitum-captcha/internal/protocol"
 	"github.com/exemt/placitum-captcha/internal/token"
+	"github.com/exemt/placitum-shared/netinfo"
 )
 
 /*

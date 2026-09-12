@@ -22,15 +22,15 @@ import (
 
 	"github.com/exemt/placitum-captcha/internal/buckets"
 	"github.com/exemt/placitum-captcha/internal/config"
-	"github.com/exemt/placitum-captcha/internal/dataset"
 	"github.com/exemt/placitum-captcha/internal/desired"
 	"github.com/exemt/placitum-captcha/internal/livelist"
-	"github.com/exemt/placitum-captcha/internal/logsink"
-	"github.com/exemt/placitum-shared/netinfo"
 	"github.com/exemt/placitum-captcha/internal/provider"
 	"github.com/exemt/placitum-captcha/internal/roster"
 	"github.com/exemt/placitum-captcha/internal/secrets"
 	"github.com/exemt/placitum-captcha/internal/stats"
+	"github.com/exemt/placitum-shared/dataset"
+	"github.com/exemt/placitum-shared/logkit"
+	"github.com/exemt/placitum-shared/netinfo"
 )
 
 func main() {
@@ -52,10 +52,10 @@ func run() error {
 	 * искать его по docker-логам отдельного контейнера незачем. Шины у
 	 * калитки может не быть вовсе -- тогда остаётся один stdout.
 	 */
-	var logs *logsink.Sink
+	var logs *logkit.Sink
 
 	if config.LogShip() {
-		logs = logsink.New(config.LogWriter(cfg.Name), cfg.Name+"-http", nil)
+		logs = logkit.NewSink(config.LogWriter(cfg.Name), cfg.Name+"-http", nil)
 
 		defer logs.Close()
 	}
@@ -105,13 +105,13 @@ func run() error {
 	 * тогда журнал остаётся там же, где был.
 	 */
 	if logs != nil && nc != nil {
-		if err := logsink.Ensure(nc); err != nil {
+		if err := logkit.Ensure(nc); err != nil {
 			log.Warn("log stream", "error", err.Error())
 		}
 
 		logs.Attach(nc)
-		log.Info("log stream", "stream", logsink.Stream,
-			"subject", logsink.Subject(logs.Writer()))
+		log.Info("log stream", "stream", logkit.Stream,
+			"subject", logkit.Subject(logs.Writer()))
 	}
 
 	/*

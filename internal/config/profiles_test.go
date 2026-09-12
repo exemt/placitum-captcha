@@ -111,7 +111,7 @@ func TestRejects(t *testing.T) {
 		"rule next on cleared": "path: /c\nrules: [{on: cleared, next: allow, charge: ip, percent: -10}]\n",
 		"rule next on fail":    "path: /c\nrules: [{on: fail, next: challenge, charge: ip, percent: 10}]\n",
 		"rule bad next":        "path: /c\nrules: [{on: uncleared, next: maybe, charge: ip, percent: 10}]\n",
-		"rule ttl on skip":         "path: /c\nrules: [{on: cleared, to: vlai, do: skip, ttl: 1h}]\n",
+		"rule ttl on skip":     "path: /c\nrules: [{on: cleared, to: vlai, do: skip, ttl: 1h}]\n",
 
 		// Полная форма просьбы: та же отбраковка, что у модуля на проводе.
 		"ask unknown verb":         "path: /c\nrules: [{on: cleared, to: vlai, do: nuke}]\n",

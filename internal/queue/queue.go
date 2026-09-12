@@ -15,8 +15,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/exemt/placitum-shared/flow"
 	"github.com/exemt/placitum-captcha/internal/protocol"
+	"github.com/exemt/placitum-shared/flow"
 )
 
 const (
