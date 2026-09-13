@@ -20,7 +20,9 @@ import (
 	"github.com/exemt/placitum-captcha/internal/buckets"
 	"github.com/exemt/placitum-captcha/internal/config"
 	"github.com/exemt/placitum-captcha/internal/decide"
+	"github.com/exemt/placitum-captcha/internal/overload"
 	"github.com/exemt/placitum-captcha/internal/protocol"
+	"github.com/exemt/placitum-captcha/internal/queue"
 	"github.com/exemt/placitum-captcha/internal/token"
 	"github.com/exemt/placitum-shared/netinfo"
 )
@@ -493,4 +495,73 @@ func code(r config.EventRule, kind string) string {
 	}
 
 	return "CAPTCHA_BUCKET_" + kind
+}
+
+/*
+ * fireOverload -- правила перегрузки: fill -- заполнение очереди при
+ * постановке запроса, shed -- запрос снят по полной очереди
+ * (internal/overload). Действия те же, что у правил событий: просьба соседу,
+ * запись в набор, заряд своей корзины. Куки клиренса у строки нет: write cid
+ * загрузчик ей не даёт. Повод по умолчанию -- код сброса CAPTCHA_QUEUE_LIMIT.
+ */
+func (h *handler) fireOverload(ctx context.Context, p *config.Profile, subj subject, clientIP string,
+	fill int, shed bool) ([]protocol.Action, error) {
+
+	var actions []protocol.Action
+	var charges []buckets.Charge
+	tiers := tiersOf(p)
+
+	for _, r := range p.RulesFor(config.OnOverload, "", "") {
+		if !overload.Fires(overload.At(r.At), fill, shed) {
+			continue
+		}
+
+		switch {
+		case r.Do != "":
+			actions = append(actions, askOf(r))
+
+		case r.List != "":
+			reason := r.Code
+			if reason == "" {
+				reason = queue.ReasonQueueLimit
+			}
+
+			if err := h.writeList(ctx, r, clientIP, "", reason); err != nil {
+				return nil, err
+			}
+
+		case r.Charge != "":
+			key := subj.key(r.Charge)
+
+			if key == "" || !tiers[r.Charge].Enabled() {
+				continue
+			}
+
+			charges = append(charges, buckets.Charge{
+				Ref: buckets.Ref{Kind: r.Charge, Key: key},
+				Add: float64(r.Percent) / 100 * tiers[r.Charge].Max,
+			})
+		}
+	}
+
+	if len(charges) > 0 {
+		if _, err := h.buckets.Apply(context.Background(), p.Name, tiers,
+			charges, nil); err != nil {
+			h.log.Warn("buckets charge failed", "profile", p.Name, "error", err.Error())
+		}
+	}
+
+	return actions, nil
+}
+
+// chargesOnOverload -- есть ли среди правил перегрузки заряд корзины: только
+// ему нужен субъект, и без него на сбросе в кодер не ходим.
+func chargesOnOverload(p *config.Profile) bool {
+	for _, r := range p.RulesFor(config.OnOverload, "", "") {
+		if r.Charge != "" {
+			return true
+		}
+	}
+
+	return false
 }

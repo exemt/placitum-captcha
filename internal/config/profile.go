@@ -21,6 +21,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/exemt/placitum-captcha/internal/overload"
 	"github.com/exemt/placitum-captcha/internal/protocol"
 )
 
@@ -267,11 +268,15 @@ const (
 	OnBucketBan     = "bucket_ban"
 	OnCleared       = "cleared"
 	OnUncleared     = "uncleared"
+	OnOverload      = overload.On
 )
 
 // onWave -- событие случается на волне инспектора: просьбы соседям доедут.
+// Перегрузка -- тоже на волне: запрос встал в очередь инспектора, и просьба
+// едет ответом (на сбросе -- рядом с error, где модуль исполнит свои глаголы).
 func onWave(on string) bool {
-	return on == OnBucketCaptcha || on == OnBucketBan || on == OnCleared || on == OnUncleared
+	return on == OnBucketCaptcha || on == OnBucketBan || on == OnCleared || on == OnUncleared ||
+		on == OnOverload
 }
 
 // bucketEvent -- событие порога корзины: селектор bucket имеет смысл.
@@ -319,6 +324,9 @@ const (
  */
 type EventRule struct {
 	On string `yaml:"on"`
+	// At -- только у overload: порог заполнения очереди в процентах, не
+	// назван -- край (internal/overload).
+	At *int `yaml:"at"`
 	// Bucket -- у порогов корзин: какая корзина; пусто -- любая.
 	Bucket string `yaml:"bucket"`
 	// Next -- у uncleared и порогов: что лестница решила с клиентом на этом
@@ -383,9 +391,18 @@ func validateEventRule(i int, r EventRule) error {
 
 	switch r.On {
 	case OnFail, OnPass, OnBucketCaptcha, OnBucketBan, OnCleared, OnUncleared:
+		if r.At != nil {
+			return fmt.Errorf("%s: at is only for on: %s", at, OnOverload)
+		}
+
+	case OnOverload:
+		if err := overload.Check(r.At); err != nil {
+			return fmt.Errorf("%s: %w", at, err)
+		}
+
 	default:
 		return fmt.Errorf("%s: on must be fail, pass, bucket_captcha, "+
-			"bucket_ban, cleared or uncleared, got %q", at, r.On)
+			"bucket_ban, cleared, uncleared or overload, got %q", at, r.On)
 	}
 
 	if r.Bucket != "" {

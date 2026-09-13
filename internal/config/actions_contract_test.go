@@ -103,7 +103,7 @@ func TestVerbsAndAxesMatchTheWire(t *testing.T) {
 		protocol.DoMutate,
 		protocol.DoActive, protocol.DoPassive, protocol.DoOff, protocol.DoVote,
 		protocol.DoAudit, protocol.DoArchive, protocol.DoMark,
-		protocol.DoScore, protocol.DoBan,
+		protocol.DoScore,
 	}
 
 	assertSameSet(t, "глаголы", ours, action.Properties.Do.Enum)

@@ -107,14 +107,18 @@ func (h *handler) evaluate(t *queue.Task, budget time.Duration, shed string) {
 		 * waf_exception … inspector pass.
 		 */
 		reply := protocol.ShedReply(t.Req, shed)
-
-		h.log.Warn("shed", "rid", t.Req.RID, "reason", shed, "budget_ms", budget.Milliseconds())
-		h.send(t.Reply, reply, t.Req, audit.Details{
+		det := audit.Details{
 			Engine: map[string]any{
 				"shed":      shed,
 				"budget_ms": float64(budget.Microseconds()) / 1000,
 			},
-		})
+		}
+
+		asks := h.overloadOnShed(t, shed, reply, det)
+
+		h.log.Warn("shed", "rid", t.Req.RID, "reason", shed, "budget_ms", budget.Milliseconds(),
+			"asks", asks)
+		h.send(t.Reply, reply, t.Req, det)
 
 		return
 	}
@@ -122,11 +126,11 @@ func (h *handler) evaluate(t *queue.Task, budget time.Duration, shed string) {
 	ctx, cancel := context.WithTimeout(context.Background(), budget)
 	defer cancel()
 
-	reply, det := h.inspect(ctx, t.Req)
+	reply, det := h.inspect(ctx, t.Req, t.Fill)
 	h.send(t.Reply, reply, t.Req, det)
 }
 
-func (h *handler) inspect(ctx context.Context, req *protocol.Request) (
+func (h *handler) inspect(ctx context.Context, req *protocol.Request, fill int) (
 	*protocol.Reply, audit.Details) {
 
 	start := time.Now()
@@ -264,6 +268,14 @@ func (h *handler) inspect(ctx context.Context, req *protocol.Request) (
 			fired = append(fired, more...)
 		}
 
+		// Правила перегрузки: запрос встал в очередь не ниже их порога.
+		if err == nil {
+			var more []protocol.Action
+
+			more, err = h.fireOverload(ctx, profile, subj, req.Conn.ClientIP, fill, false)
+			fired = append(fired, more...)
+		}
+
 		/*
 		 * Правило требует кодер, а кодер молчит: запись в набор не состоялась.
 		 * Молча пропустить нельзя -- бан, которого не было, выглядит как бан,
@@ -397,4 +409,45 @@ func (h *handler) recoverInto(subject, rid string) {
 		h.send(subject, protocol.FallbackReply(rid, h.cfg.Name, codeInternalError), nil,
 			audit.Details{})
 	}
+}
+
+/*
+ * overloadOnShed -- правила перегрузки на снятом по полной очереди запросе:
+ * срабатывают все, каков бы ни был порог, и только на фазе запроса. Просьбы
+ * едут рядом с error, модуль исполнит свои глаголы; записи и заряды капча
+ * делает сама. Субъект считается, только если его ждёт заряд корзины.
+ */
+func (h *handler) overloadOnShed(t *queue.Task, shed string, reply *protocol.Reply,
+	det audit.Details) int {
+
+	if shed != queue.ReasonQueueLimit || t.Req.Phase != protocol.PhaseRequest {
+		return 0
+	}
+
+	profile, _ := h.profiles.Current().Profile(t.Req.Route.Profile)
+	if profile == nil || profile.Mode == config.ModeOff {
+		return 0
+	}
+
+	ctx := context.Background()
+
+	var subj subject
+
+	if chargesOnOverload(profile) {
+		subj = h.subjectsOf(ctx, profile, t.Req.Conn.ClientIP, "")
+	}
+
+	actions, err := h.fireOverload(ctx, profile, subj, t.Req.Conn.ClientIP, t.Fill, true)
+	if err != nil {
+		h.log.Error("geo unavailable for a list write", "rid", t.Req.RID,
+			"profile", profile.Name, "error", err.Error())
+
+		det.Engine["geo"] = err.Error()
+	}
+
+	if len(actions) != 0 {
+		reply.Actions = actions
+	}
+
+	return len(actions)
 }
