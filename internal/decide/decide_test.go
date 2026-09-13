@@ -211,12 +211,17 @@ func TestLadder(t *testing.T) {
 		{"subresource gets deny", func(in *Input) {
 			hot(in)
 			in.Accept = "image/avif,image/webp,*/*;q=0.8"
-			in.SecFetchMode = "no-cors"
+			in.SecFetchDest = "image"
+		}, protocol.VerdictDeny, CodeRequired, TriggerHot},
+		{"page fetch gets deny", func(in *Input) {
+			hot(in)
+			in.Accept = "*/*"
+			in.SecFetchDest = "empty"
 		}, protocol.VerdictDeny, CodeRequired, TriggerHot},
 		{"browser navigation redirects", func(in *Input) {
 			hot(in)
 			in.Accept = "text/html,*/*;q=0.8"
-			in.SecFetchMode = "navigate"
+			in.SecFetchDest = "document"
 		}, protocol.VerdictRedirect, CodeRequired, TriggerHot},
 	}
 

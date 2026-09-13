@@ -172,7 +172,7 @@ func (h *handler) inspect(ctx context.Context, req *protocol.Request, fill int) 
 		in.Ticket = store.Cookie(pairs, profile.Challenge.Cookie)
 		in.UserAgent = store.Value(pairs, "user-agent")
 		in.Accept = store.Value(pairs, "accept")
-		in.SecFetchMode = store.Value(pairs, "sec-fetch-mode")
+		in.SecFetchDest = store.Value(pairs, "sec-fetch-dest")
 
 		/*
 		 * Просьбы соседей разбираются до похода в корзины: их заряды уезжают

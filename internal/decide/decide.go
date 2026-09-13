@@ -116,9 +116,9 @@ type Input struct {
 	UserAgent string
 	Accept    string
 
-	// SecFetchMode -- заголовок Sec-Fetch-Mode: navigate у перехода, cors и
-	// no-cors у подзапросов; пусто -- браузер его не прислал.
-	SecFetchMode string
+	// SecFetchDest -- заголовок Sec-Fetch-Dest: document у перехода, image,
+	// script, empty (fetch страницы) у подзапросов; пусто -- прислал не браузер.
+	SecFetchDest string
 
 	/*
 	 * Asked -- заранее разобранные просьбы соседей (PriorAsk): их заряды
@@ -956,18 +956,22 @@ func navigational(in Input, p *config.Profile) bool {
 	return true
 }
 
-// showsPage -- покажет ли браузер ответ страницей. Современный браузер говорит
-// это сам: Sec-Fetch-Mode navigate -- переход, остальное -- подзапрос картинки,
-// скрипта или fetch. Accept тут не помощник: favicon.ico просит «image/...,
-// всё подряд», и по «всё подряд» получал бы редирект с новым билетом --
-// страница виджета, открытая раньше, устаревала бы. Без заголовка (curl,
-// старый браузер) решает Accept.
+// showsPage -- покажет ли браузер ответ страницей. Браузер говорит это сам:
+// Sec-Fetch-Dest document или фрейм -- переход, остальное -- подзапрос картинки,
+// скрипта или fetch страницы. Accept тут не помощник: favicon.ico просит
+// «image/..., всё подряд», и по «всё подряд» получал бы редирект с новым
+// билетом -- страница виджета, открытая раньше, устаревала бы. Без заголовка
+// решает Accept: так ходят curl и fetch из node. Режим (Sec-Fetch-Mode) не
+// смотрится: fetch из node шлёт cors на любой запрос.
 func showsPage(in Input) bool {
-	if in.SecFetchMode != "" {
-		return in.SecFetchMode == "navigate"
+	switch in.SecFetchDest {
+	case "":
+		return acceptsHTML(in.Accept)
+	case "document", "iframe", "frame":
+		return true
+	default:
+		return false
 	}
-
-	return acceptsHTML(in.Accept)
 }
 
 func acceptsHTML(accept string) bool {
