@@ -173,6 +173,7 @@ func (h *handler) inspect(ctx context.Context, req *protocol.Request, fill int) 
 		in.UserAgent = store.Value(pairs, "user-agent")
 		in.Accept = store.Value(pairs, "accept")
 		in.SecFetchDest = store.Value(pairs, "sec-fetch-dest")
+		in.UpgradeInsecure = store.Value(pairs, "upgrade-insecure-requests") == "1"
 
 		/*
 		 * Просьбы соседей разбираются до похода в корзины: их заряды уезжают

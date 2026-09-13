@@ -117,8 +117,13 @@ type Input struct {
 	Accept    string
 
 	// SecFetchDest -- заголовок Sec-Fetch-Dest: document у перехода, image,
-	// script, empty (fetch страницы) у подзапросов; пусто -- прислал не браузер.
+	// script, empty (fetch страницы) у подзапросов; пусто -- прислал не браузер
+	// или браузер по обычному HTTP.
 	SecFetchDest string
+
+	// UpgradeInsecure -- Upgrade-Insecure-Requests: 1. Браузер шлёт его только у
+	// переходов и в том числе там, где Sec-Fetch-* не шлёт: по обычному HTTP.
+	UpgradeInsecure bool
 
 	/*
 	 * Asked -- заранее разобранные просьбы соседей (PriorAsk): их заряды
@@ -958,15 +963,19 @@ func navigational(in Input, p *config.Profile) bool {
 
 // showsPage -- покажет ли браузер ответ страницей. Браузер говорит это сам:
 // Sec-Fetch-Dest document или фрейм -- переход, остальное -- подзапрос картинки,
-// скрипта или fetch страницы. Accept тут не помощник: favicon.ico просит
-// «image/..., всё подряд», и по «всё подряд» получал бы редирект с новым
-// билетом -- страница виджета, открытая раньше, устаревала бы. Без заголовка
-// решает Accept: так ходят curl и fetch из node. Режим (Sec-Fetch-Mode) не
-// смотрится: fetch из node шлёт cors на любой запрос.
+// скрипта или fetch страницы. Режим (Sec-Fetch-Mode) не смотрится: fetch из node
+// шлёт cors на любой запрос.
+//
+// Sec-Fetch-* браузер шлёт только защищённым адресам (HTTPS, localhost). По
+// обычному HTTP переход узнаётся по Upgrade-Insecure-Requests -- его браузер
+// шлёт только у переходов -- или по text/html в Accept: так просят страницу и
+// curl с fetch из node. Голое «всё подряд» страницы не просит: так спрашивают
+// favicon.ico и fetch фронтенда, и редирект с новым билетом перебивал бы билет
+// страницы виджета, открытой раньше, -- она устаревала бы, не дождавшись ответа.
 func showsPage(in Input) bool {
 	switch in.SecFetchDest {
 	case "":
-		return acceptsHTML(in.Accept)
+		return in.UpgradeInsecure || acceptsHTML(in.Accept)
 	case "document", "iframe", "frame":
 		return true
 	default:
@@ -975,13 +984,8 @@ func showsPage(in Input) bool {
 }
 
 func acceptsHTML(accept string) bool {
-	if accept == "" {
-		return false
-	}
-
 	return strings.Contains(accept, "text/html") ||
-		strings.Contains(accept, "application/xhtml+xml") ||
-		strings.Contains(accept, "*/*")
+		strings.Contains(accept, "application/xhtml+xml")
 }
 
 func wouldBe(in Input, p *config.Profile) string {

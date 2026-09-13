@@ -223,6 +223,21 @@ func TestLadder(t *testing.T) {
 			in.Accept = "text/html,*/*;q=0.8"
 			in.SecFetchDest = "document"
 		}, protocol.VerdictRedirect, CodeRequired, TriggerHot},
+		// Обычный HTTP: Sec-Fetch-* браузер не шлёт. Переход узнаётся по
+		// Upgrade-Insecure-Requests, favicon и fetch фронтенда -- подзапросы.
+		{"plain http favicon gets deny", func(in *Input) {
+			hot(in)
+			in.Accept = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
+		}, protocol.VerdictDeny, CodeRequired, TriggerHot},
+		{"plain http frontend fetch gets deny", func(in *Input) {
+			hot(in)
+			in.Accept = "*/*"
+		}, protocol.VerdictDeny, CodeRequired, TriggerHot},
+		{"plain http navigation redirects", func(in *Input) {
+			hot(in)
+			in.Accept = "*/*"
+			in.UpgradeInsecure = true
+		}, protocol.VerdictRedirect, CodeRequired, TriggerHot},
 	}
 
 	for _, tc := range cases {
