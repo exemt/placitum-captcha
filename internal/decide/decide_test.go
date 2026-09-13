@@ -206,6 +206,18 @@ func TestLadder(t *testing.T) {
 			protocol.VerdictDeny, CodeRequired, TriggerHot},
 		{"xhr gets deny", func(in *Input) { hot(in); in.Accept = "application/json" },
 			protocol.VerdictDeny, CodeRequired, TriggerHot},
+		// favicon.ico и прочие подзапросы: страницей их не покажут, а редирект
+		// перевыпустил бы билет открытой страницы виджета.
+		{"subresource gets deny", func(in *Input) {
+			hot(in)
+			in.Accept = "image/avif,image/webp,*/*;q=0.8"
+			in.SecFetchMode = "no-cors"
+		}, protocol.VerdictDeny, CodeRequired, TriggerHot},
+		{"browser navigation redirects", func(in *Input) {
+			hot(in)
+			in.Accept = "text/html,*/*;q=0.8"
+			in.SecFetchMode = "navigate"
+		}, protocol.VerdictRedirect, CodeRequired, TriggerHot},
 	}
 
 	for _, tc := range cases {
