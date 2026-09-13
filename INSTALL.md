@@ -61,7 +61,7 @@ openssl rand -hex 32 > captcha.hmac
 | `WAF_CAPTCHA_LISTEN` | `:8080` | адрес HTTP |
 | `WAF_CAPTCHA_WEB` | `/app/web` | страница и скрипт виджета |
 | `WAF_CAPTCHA_COOKIE_SECURE` | `on` | флаг `Secure` у куки; `off` — только для стенда без TLS |
-| `WAF_CAPTCHA_REAL_IP_HEADER` | | заголовок с адресом клиента от узла |
+| `WAF_CAPTCHA_REAL_IP_HEADER` | `X-Forwarded-For` | заголовок с адресом клиента от узла; берётся последнее значение — его дописал узел, начало списка пишет клиент |
 | `WAF_CAPTCHA_CONTROLLER` | — | адрес контроллера: секреты внешних провайдеров |
 | `WAF_CAPTCHA_SCOPE` | — | пространство, например `name:default` |
 | `WAF_CAPTCHA_CONTOUR_KEY` | — | приватный ключ контура для открытия секретов провайдеров |

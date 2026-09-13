@@ -294,19 +294,33 @@ func (s *server) bindOf(r *http.Request, p *config.Profile) token.Bind {
 	return b
 }
 
-// clientIP: сервис всегда стоит за nginx, адрес -- первое значение заголовка.
+// clientIP: сервис всегда стоит за nginx, адрес -- последнее значение
+// заголовка. nginx дописывает адрес своего клиента в хвост, всё левее прислал
+// клиент: верь сервис первому значению, клиренс и корзины считались бы на адрес,
+// который клиент назвал сам.
 func (s *server) clientIP(r *http.Request) string {
-	if v := r.Header.Get(s.cfg.RealIPHeader); v != "" {
-		first, _, _ := strings.Cut(v, ",")
+	return forwardedAddr(r.Header.Values(s.cfg.RealIPHeader), r.RemoteAddr)
+}
 
-		if ip := strings.TrimSpace(first); ip != "" {
+// forwardedAddr -- последнее значение последней строки заголовка, если это
+// адрес; иначе адрес соединения. Пустой или битый хвост не повод брать значение
+// левее: его писал клиент.
+func forwardedAddr(values []string, remoteAddr string) string {
+	if n := len(values); n > 0 {
+		last := values[n-1]
+
+		if i := strings.LastIndexByte(last, ','); i >= 0 {
+			last = last[i+1:]
+		}
+
+		if ip := strings.TrimSpace(last); net.ParseIP(ip) != nil {
 			return ip
 		}
 	}
 
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	host, _, err := net.SplitHostPort(remoteAddr)
 	if err != nil {
-		return r.RemoteAddr
+		return remoteAddr
 	}
 
 	return host
