@@ -1,0 +1,70 @@
+# Default profile: the widget when buckets fill up and when a neighbour asks for a challenge
+# (the challenge action in prior).
+#
+# default  by buckets, own image challenge
+# login    when: always, for sign-in and sign-up forms
+# observe  always allow; the audit shows what enforce would decide
+# _probe   derived from default automatically: when: always, for the health check
+
+mode: enforce
+path: /waf/captcha
+title: "Confirm you are not a robot"
+
+trigger:
+  prior:
+    # A request for a check is accepted from anyone. It stays a request: this profile decides when
+    # to show the challenge.
+    - from: "*"
+      accept: [challenge]
+    # The action inspector is a trusted sender: accept all its verbs, including signed bucket changes.
+    - from: action
+      accept: ["*"]
+
+# Buckets: shared counts of subjects in the internal Redis, filled by neighbours with note requests;
+# thresholds are percentages of capacity. The session bucket is the personal one.
+buckets:
+  ip:        { max: 100,  loss: 1,   captcha_at: 60, ban_at: 90 }
+  sess:      { max: 100,  loss: 1,   captcha_at: 60 }
+  asn_net:   { max: 300,  loss: 1,   captcha_at: 60 }
+  asn_router: { max: 1000, loss: 0.5, captcha_at: 60 }
+
+gate:
+  redirect_methods: [GET, HEAD]
+  redirect_status: 303
+  deny_response: captcha_required
+  html_only: true
+
+provider:
+  kind: image
+  length: 5
+
+challenge:
+  cookie: waf_cap
+  ttl: 5m
+
+clearance:
+  cookie: waf_clr
+  id_cookie: waf_cid
+  ttl: 24h
+  bind: [subnet, ua]
+  subnet: { v4: 24, v6: 64 }
+
+fingerprint:
+  collect: true
+  canvas: false
+  farm_at: 50
+  window: 1h
+
+limits:
+  issue_per_subnet: 30/m
+  verify_per_subnet: 60/m
+  pending_max: 200000
+  provider_budget: 50/s
+
+upstream:
+  header: X-WAF-Captcha
+
+roster:
+  store: redis
+  prefix: "cap:"
+  revoke_refresh: 2s

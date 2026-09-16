@@ -1,0 +1,6 @@
+/inspector
+/captcha
+/captcha-http
+/captcha-probe
+/data/
+.env

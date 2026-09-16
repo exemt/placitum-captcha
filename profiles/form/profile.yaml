@@ -1,0 +1,60 @@
+# The widget in the body of the answer on the same URI, without a redirect.
+#
+# The only difference from login is gate.inline. A redirect sends the browser to an absolute address
+# that nginx builds with the port of its listen, so behind a TLS terminator or on a non-standard port
+# the client ends up in the wrong place; the inline widget keeps the address.
+#
+# The inspector issues a ticket, gets the page from captcha-http with an internal request
+# (WAF_CAPTCHA_HTTP_URL), puts it into the exchange under the request key and answers deny with a
+# rewrite section; the module returns the object as the response body. Without the page the
+# inspector redirects, like login.
+
+mode: enforce
+path: /waf/captcha
+title: "Confirm you are not a robot"
+note: "A quick check, and we will take you back to the page."
+
+trigger:
+  when: always
+
+gate:
+  # The page comes in the body of this answer. The status stays a denial (403 for captcha_required):
+  # a 200 would turn the gate into a silent pass, cached by CDNs and indexed by search engines.
+  inline: true
+
+  # Non-navigations (fetch, POST) and the fallback: a machine-readable denial with the challenge
+  # address; the frontend shows the widget itself.
+  deny_response: captcha_required
+
+  redirect_methods: [GET, HEAD]
+  redirect_status: 303
+  html_only: true
+
+provider:
+  kind: image
+  length: 5
+  audio: true
+
+challenge:
+  cookie: waf_cap
+  ttl: 5m
+
+clearance:
+  cookie: waf_clr
+  id_cookie: waf_cid
+  ttl: 1h
+  bind: [subnet, ua]
+
+limits:
+  issue_per_subnet: 30/m
+  verify_per_subnet: 60/m
+  pending_max: 200000
+  provider_budget: 50/s
+
+upstream:
+  header: X-WAF-Captcha
+
+roster:
+  store: redis
+  prefix: "cap:"
+  revoke_refresh: 2s
