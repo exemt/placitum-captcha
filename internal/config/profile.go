@@ -441,8 +441,8 @@ func validateAsk(at string, r EventRule) error {
 	}
 
 	if r.Do == protocol.DoThreshold {
-		if r.Delta == nil {
-			return fmt.Errorf("%s: threshold requires delta", at)
+		if r.Delta == nil || *r.Delta == 0 {
+			return fmt.Errorf("%s: threshold needs a non-zero delta", at)
 		}
 
 		if *r.Delta < -100 || *r.Delta > 900 {
@@ -454,6 +454,10 @@ func validateAsk(at string, r EventRule) error {
 
 	switch r.Do {
 	case protocol.DoNote:
+		if r.Value != nil && *r.Value == 0 {
+			return fmt.Errorf("%s: note value must be non-zero", at)
+		}
+
 		if r.Value != nil && (*r.Value < -100 || *r.Value > 100) {
 			return fmt.Errorf("%s: value %d is out of -100..100 percent", at, *r.Value)
 		}
