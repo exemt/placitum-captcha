@@ -52,8 +52,8 @@ cookie, and clients pass the challenge again.
 | --- | --- | --- |
 | `WAF_CAPTCHA_SUBJECT` | `waf.req.captcha` | subscription |
 | `WAF_CAPTCHA_VERSIONS` | `2` | accepted message schema versions |
-| `WAF_CAPTCHA_GEO_ADDR` | empty | geo coder; empty keeps subnet and AS buckets silent |
-| `WAF_CAPTCHA_GEO_TIMEOUT`, `WAF_CAPTCHA_GEO_NEG_MAX` | `500ms`, `0` | coder wait and negative cache |
+| `WAF_CAPTCHA_GEO_ADDR` | empty | network directory; empty keeps subnet and AS buckets silent |
+| `WAF_CAPTCHA_GEO_TIMEOUT`, `WAF_CAPTCHA_GEO_NEG_MAX` | `500ms`, `0` | network directory wait and negative cache |
 | `WAF_CAPTCHA_HTTP_URL` | empty | `captcha-http` address for `gate.inline`; empty makes such profiles redirect |
 | `WAF_CAPTCHA_WORKERS`, `WAF_CAPTCHA_QUEUE_DEPTH`, `WAF_CAPTCHA_QUEUE_FULL`, `WAF_CAPTCHA_CONF` | CPUs, `inspector.conf` | queue |
 
