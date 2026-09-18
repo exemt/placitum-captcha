@@ -11,7 +11,7 @@ network, the widget service is a plain HTTP service behind the protection node. 
 | Component | Required | Why |
 | --- | --- | --- |
 | NATS | yes | the `waf.req.captcha` queue, audit, log, profile generations |
-| Exchange Redis | yes, for the inspector | request headers by locator: without them the clearance cookie is invisible |
+| Buffer Redis | yes, for the inspector | request headers by locator: without them the clearance cookie is invisible |
 | Internal Redis | yes, for both | buckets and roster: nonces, widget images, failures, revocation |
 | Captcha signing key | yes, for both | seals the `waf_clr` and `waf_cap` cookies; one key for both processes |
 | Protection node | yes, for the widget | `/waf/captcha` is proxied to `captcha-http` |
@@ -19,7 +19,7 @@ network, the widget service is a plain HTTP service behind the protection node. 
 | `keeper` | for outcome writes to datasets | owns active dataset contents |
 | Controller and installation key | for external providers | `captcha-http` opens provider secrets with the installation key |
 
-**The inspector does not start without the exchange.** Without the clearance cookie it would send
+**The inspector does not start without the buffer.** Without the clearance cookie it would send
 clients that already passed the challenge to the widget again.
 
 ## Signing key
@@ -38,7 +38,7 @@ cookie, and clients pass the challenge again.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `NATS_URL` | `nats://127.0.0.1:4222` | bus |
-| `REDIS_URL`, `REDIS_INTERNAL_URL` | from `inspector.conf` | exchange and internal Redis |
+| `REDIS_URL`, `REDIS_INTERNAL_URL` | from `inspector.conf` | buffer and internal Redis |
 | `WAF_CAPTCHA_NAME` | `captcha` | name in the registry and the presence frame |
 | `WAF_CAPTCHA_KEY_FILE` | — | signing key file; neither process starts without it |
 | `WAF_CAPTCHA_PROFILES` | `./profiles`; `/app/profiles` in the image | profiles |
@@ -118,5 +118,5 @@ curl -fsS http://captcha-http:8080/status
 - **Different keys in the two processes**: the widget issues a cookie the inspector does not
   accept, and the client loops between the challenge and the redirect.
 - **`WAF_CAPTCHA_COOKIE_SECURE=off` over TLS**: the clearance cookie may leak over plain HTTP.
-- **Buckets live in the internal Redis, not in the exchange.** Mixed-up addresses give every
+- **Buckets live in the internal Redis, not in the buffer.** Mixed-up addresses give every
   instance its own count, and the threshold never fires.

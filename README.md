@@ -11,7 +11,7 @@ the only thing connecting them.
 ```
 module ──► waf.req.captcha ──► captcha       ── allow | redirect | deny
                                   │
-                                  ├── decision: profile, clearance cookie, buckets, neighbour requests
+                                  ├── decision: profile, clearance cookie, buckets, neighbour signals
                                   └── buckets and roster in the internal Redis
 
 client ──► /waf/captcha ──► captcha-http     ── widget, answer check, waf_clr cookie
@@ -40,7 +40,7 @@ the panel.
 
 | Profile | What it does |
 | --- | --- |
-| `default` | the widget when buckets fill up or a neighbour asks for a challenge; own image challenge |
+| `default` | the widget when buckets fill up or a neighbour signals for a challenge; own image challenge |
 | `login` | the widget for every client without clearance, with a short clearance: sign-in and sign-up forms |
 | `form` | like `login`, but the page comes in the body of the answer on the same URI |
 | `observe` | always `allow`; the would-be decision goes to the audit |
