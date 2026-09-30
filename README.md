@@ -19,8 +19,8 @@ client ──► /waf/captcha ──► captcha-http     ── widget, answer c
 
 ## What it can do
 
-- **Buckets by axis**: address, subnet, autonomous system, session. GCRA in the internal Redis, one
-  writer for all instances and one sum for all of them.
+- **Buckets by axis**: address, announced network, autonomous system, session. GCRA in the internal
+  Redis, one writer for all instances and one sum for all of them.
 - **Providers**: its own image challenge or external ones: Turnstile, reCAPTCHA, hCaptcha and
   SmartCaptcha. The profile chooses the provider, and a widget that fails to load gives way to the
   next one.
@@ -45,9 +45,9 @@ the panel.
 | `form` | like `login`, but the page comes in the body of the answer on the same URI |
 | `observe` | always `allow`; the would-be decision goes to the audit |
 
-A `_probe` profile is derived from `default` automatically for the health check. The widget page
-is in English; the profile's `languages` list (`en`, `ru` by default) picks the page language
-attribute from `Accept-Language`.
+A `_probe` profile is derived from `default` automatically for the health check. The text of the
+widget page is English; the profile's `languages` list (`en`, `ru` by default) only sets the `lang`
+attribute of the page from `Accept-Language`.
 
 ## Build and run
 
